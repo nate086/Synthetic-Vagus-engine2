@@ -1,14 +1,12 @@
-(![CI Status](https://github.com/nate086/Synthetic-vegas-engine2/actions/workflows/Ci.yml/badge.svg))
-Biomimetic activation-steering framework for LLM safety. Translates autonomic nervous system regulation into continuous, dynamic vector steering in residual activation space.
+# Synthetic Vagus Engine (SVE)
 
-## Modules
-- `neuroception_monitor.py` — simple NeuroceptionMonitor class for threat evaluation (placeholder implementation).
+![CI Status](https://github.com/nate086/Synthetic-vegas-engine2/actions/workflows/Ci.yml/badge.svg)
 
-## Quick start
-```python
-from neuroception_monitor import NeuroceptionMonitor
+Biomimetic activation steering for LLM safety based on Prioritized Protection Model (PPM) state transitions.
 
-monitor = NeuroceptionMonitor()
-score = monitor.evaluate({"heart_rate_variability": 0.3, "skin_conductance": 0.2})
-print("Threat score:", score)
-```
+## 🚀 Quick Start
+```bash
+git clone [https://github.com/nate086/Synthetic-vegas-engine2.git](https://github.com/nate086/Synthetic-vegas-engine2.git)
+cd Synthetic-vegas-engine2
+pip install -e .
+python examples/demo_steering.py
