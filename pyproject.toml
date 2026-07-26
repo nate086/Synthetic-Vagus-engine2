@@ -1,0 +1,11 @@
+[tool.poetry]
+name = "synthetic-vegas-engine2"
+version = "0.0.0"
+description = "Biomimetic activation-steering framework for LLM safety"
+authors = ["nate086 <highn8086@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.0"
