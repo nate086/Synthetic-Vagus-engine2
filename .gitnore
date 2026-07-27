@@ -1,4 +1,2 @@
-git checkout fix/remove-gitnore-typo
-git rm .gitnore
-git commit -m "Remove .gitnore typo file"
-git push origin fix/remove-gitnore-typo
+# This file should be deleted - it is a typo and should not exist
+# Use: git rm .gitnore
