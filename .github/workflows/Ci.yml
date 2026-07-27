@@ -27,4 +27,4 @@ jobs:
 
     - name: Run Tests
       run: |
-        python tests/test_autonomic.py
+        run: pytest
