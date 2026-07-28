@@ -26,6 +26,11 @@ class AutonomicStatus:
     scaling_alpha: float
     threat_level: float
 
+    @property
+    def threat_index(self) -> float:
+        """Compatibility alias used by some callers/tests."""
+        return self.threat_level
+
 
 class AutonomicStateMachine:
     """
