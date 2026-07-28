@@ -25,5 +25,5 @@ jobs:
         pip install torch numpy pytest
         pip install -e .
       
-    - name: Run Test,
-        run: pytest,
+    - name: Run Tests
+        run: pytest
