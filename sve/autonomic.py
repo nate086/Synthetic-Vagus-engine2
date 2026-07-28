@@ -19,75 +19,68 @@ class AutonomicState(Enum):
     SHUTDOWN_SHIELD = "shutdown_shield"
 
 
-@dataclass
+@dataclass(init=False)
 class AutonomicStatus:
-    """Status output from autonomic evaluation."""
+    """Status output from autonomic evaluation.
+
+    Backwards-compatible constructor: accepts either `threat_level` or `threat_index`
+    as a keyword (or positional) argument. Keeps `threat_index` as a read-only
+    compatibility alias for `threat_level`.
+    """
     state: AutonomicState
     scaling_alpha: float
     threat_level: float
 
+    def __init__(self, *args, threat_level=None, threat_index=None, **kwargs):
+        # Allow either threat_level or threat_index as a keyword
+        if threat_level is None and threat_index is not None:
+            threat_level = threat_index
+
+        # Handle positional args: (state, scaling_alpha, threat_level)
+        if args:
+            # Map positional args to fields in order
+            if len(args) > 0:
+                self.state = args[0]
+            if len(args) > 1:
+                self.scaling_alpha = args[1]
+            if len(args) > 2:
+                self.threat_level = args[2]
+            # Positional threat_level can be overridden by keyword
+            if threat_level is not None:
+                self.threat_level = threat_level
+        else:
+            # Keyword construction
+            self.state = kwargs.get("state")
+            self.scaling_alpha = kwargs.get("scaling_alpha")
+            if threat_level is None:
+                threat_level = kwargs.get("threat_level", 0.0)
+            self.threat_level = threat_level
+
     @property
     def threat_index(self) -> float:
-        """Compatibility alias used by some callers/tests."""
+        """Compatibility alias used by older callers/tests."""
         return self.threat_level
 
 
 class AutonomicStateMachine:
     """
     State machine that transitions through autonomic states based on threat evaluation.
-
-    Implements three threat response pathways:
-    - Blue Pathway: Low threat (T < low_threshold) - no steering needed
-    - High Tide: Medium threat (low_threshold <= T < high_threshold) - graduated steering
-    - Shutdown Shield: High threat (T >= high_threshold) - maximum steering
     """
 
     def __init__(self, low_threshold: float = 0.3, high_threshold: float = 0.8):
-        """
-        Initialize the autonomic state machine.
-
-        Args:
-            low_threshold: Threat level threshold for entering High Tide state
-            high_threshold: Threat level threshold for entering Shutdown Shield state
-        """
         self.low_threshold = low_threshold
         self.high_threshold = high_threshold
 
     def evaluate(self, threat_level: float) -> AutonomicStatus:
-        """
-        Evaluate threat level and return appropriate autonomic state and steering.
-
-        Args:
-            threat_level: Normalized threat score (0.0 to 1.0)
-
-        Returns:
-            AutonomicStatus with current state and scaling alpha for vector steering
-        """
         t = max(0.0, min(1.0, float(threat_level)))
 
         if t < self.low_threshold:
-            # Blue Pathway: Low threat - no steering
-            return AutonomicStatus(
-                state=AutonomicState.BLUE_PATHWAY,
-                scaling_alpha=0.0,
-                threat_level=t,
-            )
+            return AutonomicStatus(state=AutonomicState.BLUE_PATHWAY, scaling_alpha=0.0, threat_level=t)
         elif t < self.high_threshold:
-            # High Tide: Medium threat - graduated steering
-            # Linear interpolation between 0 and 1
             scaling_alpha = (t - self.low_threshold) / (self.high_threshold - self.low_threshold)
-            return AutonomicStatus(
-                state=AutonomicState.HIGH_TIDE,
-                scaling_alpha=scaling_alpha,
-                threat_level=t,
-            )
+            return AutonomicStatus(state=AutonomicState.HIGH_TIDE, scaling_alpha=scaling_alpha, threat_level=t)
         else:
-            # Shutdown Shield: High threat - maximum steering
-            return AutonomicStatus(
-                state=AutonomicState.SHUTDOWN_SHIELD,
-                scaling_alpha=1.0,
-                threat_level=t,
-            )
+            return AutonomicStatus(state=AutonomicState.SHUTDOWN_SHIELD, scaling_alpha=1.0, threat_level=t)
 
 
 class AutonomicEngine(nn.Module):
@@ -107,9 +100,7 @@ class AutonomicEngine(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Process biological/synthetic inputs into autonomic tone levels."""
         return self.net(x)
 
     def compute_hrv_index(self, vagal_tone: float, sympathetic_tone: float) -> float:
-        """Calculate a synthetic Heart Rate Variability (HRV) proxy score."""
         return float(np.clip(vagal_tone - (0.5 * sympathetic_tone), 0.0, 1.0))
