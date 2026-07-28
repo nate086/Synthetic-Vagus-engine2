@@ -1,8 +1,3 @@
-"""
-Synthetic Vagus Engine (SVE)
-Biomimetic Activation Steering for AI Safety
-"""
-
 from sve.autonomic import AutonomicStateMachine, AutonomicState, AutonomicStatus
 from sve.steering import SyntheticVagusHook
 from sve.monitor import NeuroceptionMonitor
