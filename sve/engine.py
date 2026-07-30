@@ -2,16 +2,18 @@ import torch
 from sve.autonomic import AutonomicStateMachine, AutonomicState
 from sve.steering import SyntheticVagusHook
 from sve.monitor import NeuroceptionMonitor
+from sve.validator import EngineeringValidator
 
 class SyntheticVagusEngine:
     """
     Engine wrapper that applies steering hooks, safety monitors,
-    and runs actual model generation logic.
+    model text generation, and engineering output validation.
     """
     def __init__(self, model, target_layer_idx: int = 0, steering_vector = None):
         self.model = model
         self.state_machine = AutonomicStateMachine()
         self.monitor = NeuroceptionMonitor()
+        self.validator = EngineeringValidator()
         self.vector_tensor = steering_vector
 
         if hasattr(model, "model") and hasattr(model.model, "layers"):
@@ -45,7 +47,6 @@ class SyntheticVagusEngine:
         try:
             inputs = tokenizer(prompt, return_tensors="pt")
             
-            # Send inputs to same device as model if applicable
             if hasattr(self.model, "device"):
                 inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
 
@@ -56,7 +57,14 @@ class SyntheticVagusEngine:
                     **kwargs
                 )
             
-            return tokenizer.decode(output_ids[0], skip_special_tokens=True)
+            generated_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
+
+            # 5. Post-validation check on generated output
+            validation_result = self.validator.validate_output(generated_text)
+            if not validation_result["valid"]:
+                return f"{generated_text}\n\n[{validation_result['reason']}]"
+
+            return generated_text
 
         except Exception as e:
             return f"Generation Error: {str(e)}"
