@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MarketSve2Engine, Sve2MarketState } from './MarketSve2Engine';
+import { pocketStream } from './PocketDataStream';
 
 const sveEngine = new MarketSve2Engine();
 
@@ -12,11 +13,27 @@ export const PocketAssistantUI: React.FC = () => {
     recommendedAction: 'HOLD',
   });
 
-  const [simulatedPrice, setSimulatedPrice] = useState<number>(1.0850);
+  const [currentPrice, setCurrentPrice] = useState<number>(1.0850);
+  const [isLive, setIsLive] = useState<boolean>(false);
 
-  // Ingests price updates into the SVE2 Engine loop
-  const handleNewTick = (newPrice: number) => {
-    setSimulatedPrice(newPrice);
+  useEffect(() => {
+    // Connect to live tick feed on component mount
+    // (Replace URL with your target broker/crypto tick stream endpoint)
+    const wsUrl = 'wss://stream.binance.com:9443/ws/btcusdt@trade'; 
+
+    pocketStream.connect(wsUrl, (newState, livePrice) => {
+      setMarketState(newState);
+      setCurrentPrice(livePrice);
+      setIsLive(true);
+    });
+
+    return () => {
+      pocketStream.disconnect();
+    };
+  }, []);
+
+  const handleManualTick = (newPrice: number) => {
+    setCurrentPrice(newPrice);
     const updatedState = sveEngine.ingestTick(newPrice);
     setMarketState(updatedState);
   };
@@ -30,7 +47,9 @@ export const PocketAssistantUI: React.FC = () => {
           styles.statusBadge, 
           marketState.ppmBlocked ? styles.bgBlocked : styles.bgSafe
         ]}>
-          {marketState.ppmBlocked ? '🚨 PPM SHIELD: VOLATILITY SPIKE' : '🟢 SVE2 ACTIVE'}
+          {marketState.ppmBlocked 
+            ? '🚨 PPM SHIELD: VOLATILITY SPIKE' 
+            : isLive ? '🟢 SVE2 LIVE STREAMING' : '🟡 SVE2 MANUAL / STANDBY'}
         </Text>
       </View>
 
@@ -59,28 +78,28 @@ export const PocketAssistantUI: React.FC = () => {
       {/* Telemetry Display */}
       <View style={styles.telemetryBox}>
         <Text style={styles.telemetryText}>
-          Price: <Text style={styles.bold}>{simulatedPrice.toFixed(4)}</Text>
+          Live Price: <Text style={styles.bold}>{currentPrice.toFixed(2)}</Text>
         </Text>
         <Text style={styles.telemetryText}>
           SVE Steering Score: <Text style={styles.bold}>{marketState.sveScore.toFixed(2)}</Text>
         </Text>
       </View>
 
-      {/* Mobile Simulation Ticks (For Testing on Phone) */}
-      <Text style={styles.simLabel}>TEST SIMULATOR TICKS</Text>
+      {/* Manual Override Buttons */}
+      <Text style={styles.simLabel}>MANUAL TICK SIMULATION</Text>
       <View style={styles.buttonRow}>
         <TouchableOpacity 
           style={[styles.btn, styles.btnUp]} 
-          onPress={() => handleNewTick(simulatedPrice + 0.0008)}
+          onPress={() => handleManualTick(currentPrice + 5.0)}
         >
-          <Text style={styles.btnText}>📈 Tick Up</Text>
+          <Text style={styles.btnText}>📈 Force Tick Up</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
           style={[styles.btn, styles.btnDown]} 
-          onPress={() => handleNewTick(simulatedPrice - 0.0008)}
+          onPress={() => handleManualTick(currentPrice - 5.0)}
         >
-          <Text style={styles.btnText}>📉 Tick Down</Text>
+          <Text style={styles.btnText}>📉 Force Tick Down</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -90,7 +109,7 @@ export const PocketAssistantUI: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0f', padding: 16, justifyContent: 'center' },
   header: { alignItems: 'center', marginBottom: 20 },
-  title: { color: '#00D9FF', fontSize: 14, fontWeight: 'bold', letterSpacing: 1 },
+  title: { color: '#00D9FF', fontSize: 13, fontWeight: 'bold', letterSpacing: 1 },
   statusBadge: { color: '#FFF', fontSize: 10, fontWeight: 'bold', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, marginTop: 6 },
   bgSafe: { backgroundColor: '#002b1d' },
   bgBlocked: { backgroundColor: '#4a0d0d' },
@@ -112,5 +131,5 @@ const styles = StyleSheet.create({
   btn: { flex: 1, paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
   btnUp: { backgroundColor: '#003311' },
   btnDown: { backgroundColor: '#330011' },
-  btnText: { color: '#FFF', fontWeight: 'bold', fontSize: 14 },
+  btnText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
 });
